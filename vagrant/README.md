@@ -50,8 +50,8 @@ Siga os passos abaixo para subir o ambiente:
 
 ```bash
 # Clone este repositório
-git clone https://github.com/seu-usuario/nome-do-repositorio.git
-cd nome-do-repositorio
+git clone git@github.com:douglasportugal/homelab.git
+cd homelab
 
 # Inicialize o ambiente (cria as VMs, prepara o Kubespray e sobe o cluster)
 make init
