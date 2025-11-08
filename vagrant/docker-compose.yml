@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  kubespray:
+    image: quay.io/kubespray/kubespray:v2.29.0
+    container_name: kubespray
+    command: >
+      bash -c "ansible-playbook -i /inventory/inventory.ini --private-key /vagrant/.ssh/id_rsa cluster.yml"
+    working_dir: /kubespray
+    volumes:
+      - ./kubespray/inventory/sample:/inventory
+      - ${HOME}/.ssh/id_rsa:/vagrant/.ssh/id_rsa:ro
+    tty: true
+    stdin_open: true
+    restart: "no"
