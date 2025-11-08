@@ -1,0 +1,21 @@
+services:
+  db2:
+    container_name: db2
+    image: icr.io/db2_community/db2:latest
+    restart: unless-stopped
+    privileged: true
+    env_file:
+      - .env
+    ports:
+      - "${DB2_PORT}:50000"
+    volumes:
+      - data:/database
+    healthcheck:
+      test: ["CMD-SHELL", "su", "-", "${DB2INSTANCE}", "-c", "db2 connect to ${DBNAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  data:
+# Sempre recriar a cada excecao, docker compose down -v
