@@ -32,4 +32,3 @@ stop:
 
 destroy:
 	cd $(K8S_DIR) && vagrant destroy -f
-	
