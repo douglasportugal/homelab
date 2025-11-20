@@ -18,3 +18,4 @@ kubespray/
 *.swp
 .DS_Store
 Thumbs.db
+*.zip
