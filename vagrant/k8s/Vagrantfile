@@ -22,8 +22,8 @@ Vagrant.configure("2") do |config|
 
       # Recursos da VM
       nodeconfig.vm.provider "virtualbox" do |v|
-        v.memory = 4096
-        v.cpus = 4
+        v.memory = 2048
+        v.cpus = 2
 
         # Configurações gráficas otimizadas
         v.customize ["modifyvm", :id, "--vram", "128"]
