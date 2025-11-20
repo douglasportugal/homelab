@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := init
 
 # Variáveis de caminho
-ROOT_DIR := /home/douglas/Documentos/git/private/projects/homelab/vagrant
+ROOT_DIR := ~/Documentos/git/homelab/vagrant
 KUBESPRAY_DIR := $(ROOT_DIR)/kubespray
 K8S_DIR := $(ROOT_DIR)/k8s
 
