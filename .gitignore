@@ -1,6 +1,6 @@
 # Arquivos de configuração sensíveis
 .env
-.env_*
+.env*
 
 # Diretórios e arquivos do Docker
 *.log
@@ -10,8 +10,14 @@
 **/.venv/
 .vagrant/**
 **/.vagrant/
+
 kubespray/
 **/kubespray/
+
+# Terraform
+.terraform/
+**/.terraform/
+.terraform.lock.hcl
 
 # Arquivos temporários do sistema
 *.tmp
@@ -19,3 +25,4 @@ kubespray/
 .DS_Store
 Thumbs.db
 *.zip
+*.tar.gz

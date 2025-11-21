@@ -28,7 +28,8 @@ Vagrant.configure("2") do |config|
         # Configurações gráficas otimizadas
         v.customize ["modifyvm", :id, "--vram", "128"]
         v.customize ["modifyvm", :id, "--graphicscontroller", "vmsvga"]
-        v.customize ["modifyvm", :id, "--accelerate3d", "on"]
+        v.customize ["modifyvm", :id, "--accelerate3d", "off"]
+
       end
 
       # Copia a chave pública para dentro da VM
