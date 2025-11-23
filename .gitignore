@@ -26,3 +26,4 @@ kubespray/
 Thumbs.db
 *.zip
 *.tar.gz
+get_helm.sh

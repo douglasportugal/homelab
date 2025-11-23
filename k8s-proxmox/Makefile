@@ -2,7 +2,8 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := init
 
 # Variáveis de caminho
-ROOT_DIR := /home/douglas/Documentos/git/homelab/k8s-proxmox
+HOME=/home/douglas
+ROOT_DIR := ${HOME}/Documentos/git/homelab/k8s-proxmox
 TF_DIR := $(ROOT_DIR)/terraform/k8s
 KUBESPRAY_DIR := $(ROOT_DIR)/kubespray
 INVENTORY_NAME := homelab
@@ -12,7 +13,7 @@ GROUP_VARS_FILE := $(INVENTORY_DIR)/group_vars/k8s_cluster/k8s-cluster.yml
 ENV_FILE := $(TF_DIR)/.env
 TERRAFORM_VERSION=1.9.8
 HELMFILE_VERSION=1.2.0
-init: pre provisioning k8s
+init: pre provisioning kubespray fixInventory createCluster helm
 
 destroy:
 	@cd $(TF_DIR) && \
@@ -48,20 +49,34 @@ provisioning:
 	terraform init && \
 	terraform apply -auto-approve
 
-k8s:
-	@cd $(ROOT_DIR) && \
+
+kubespray:
+	cd $(ROOT_DIR) && \
 	rm -rf $(KUBESPRAY_DIR) && \
-	git clone https://github.com/kubernetes-sigs/kubespray.git && \
-	python3 -m venv .venv && \
-	source .venv/bin/activate && \
-	pip install -r $(KUBESPRAY_DIR)/requirements.txt && \
-	cd $(KUBESPRAY_DIR) && \
-	cp -r $(KUBESPRAY_DIR)/inventory/sample $(INVENTORY_DIR) && \
-	sed -i 's#kube_network_plugin: calico#kube_network_plugin: flannel#g' $(GROUP_VARS_FILE) && \
+	git clone https://github.com/kubernetes-sigs/kubespray.git $(KUBESPRAY_DIR) && \
+	cp -r $(KUBESPRAY_DIR)/inventory/sample $(KUBESPRAY_DIR)/inventory/homelab && \
 	cp $(INVENTORY_FILE) $(INVENTORY_DIR)/inventory.ini && \
-	ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vv -i $(INVENTORY_DIR)/inventory.ini -b cluster.yml
+	cd $(KUBESPRAY_DIR)/inventory/homelab/group_vars/k8s_cluster && \
+	sed -i 's/kube_network_plugin: calico/kube_network_plugin: flannel/g' k8s-cluster.yml
+
+createCluster:
+	docker run --rm -it \
+		--mount type=bind,source=$(INVENTORY_DIR),dst=/inventory \
+		--mount type=bind,source=${HOME}/.ssh/id_rsa,dst=/root/.ssh/id_rsa \
+		quay.io/kubespray/kubespray:v2.29.0 \
+		bash -c "ansible-playbook -i /inventory/inventory.ini --private-key /root/.ssh/id_rsa cluster.yml"
 
 helm:
-	@helm plugin update diff || helm plugin install https://github.com/databus23/helm-diff && \
+	helm repo add zabbix-community https://zabbix-community.github.io/helm-charts || true
+	helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/ || true
+	helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+	helm repo update && \
+	curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 && \
+    chmod 700 get_helm.sh && \
+	./get_helm.sh && \
+	helm plugin update diff || helm plugin install https://github.com/databus23/helm-diff --verify=false && \
 	helmfile apply && \
 	kubectl apply -f values/metallb/pool.yaml
+
+fixInventory:
+	sed -i '/^\[all\]/a ansible_user=douglas\\nansible_become=true\\nansible_become_method=sudo\\n' $(INVENTORY_DIR)/inventory.ini
