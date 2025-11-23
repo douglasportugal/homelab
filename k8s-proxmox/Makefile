@@ -13,7 +13,7 @@ GROUP_VARS_FILE := $(INVENTORY_DIR)/group_vars/k8s_cluster/k8s-cluster.yml
 ENV_FILE := $(TF_DIR)/.env
 TERRAFORM_VERSION=1.9.8
 HELMFILE_VERSION=1.2.0
-init: pre provisioning kubespray fixInventory createCluster helm
+init: pre provisioning kubespray setKubeVersion fixInventory createCluster helm
 
 destroy:
 	@cd $(TF_DIR) && \
@@ -80,3 +80,18 @@ helm:
 
 fixInventory:
 	sed -i '/^\[all\]/a ansible_user=douglas\\nansible_become=true\\nansible_become_method=sudo\\n' $(INVENTORY_DIR)/inventory.ini
+
+setKubeVersion:
+	@echo ">> Ajustando kube_version e kube_version_min_required"
+
+	@if grep -q '^kube_version:' $(KUBESPRAY_DIR)/inventory/homelab/group_vars/k8s_cluster/k8s-cluster.yml; then \
+		sed -i 's/^kube_version:.*/kube_version: "v1.29.3"/' $(KUBESPRAY_DIR)/inventory/homelab/group_vars/k8s_cluster/k8s-cluster.yml; \
+	else \
+		echo 'kube_version: "v1.29.3"' >> $(KUBESPRAY_DIR)/inventory/homelab/group_vars/k8s_cluster/k8s-cluster.yml; \
+	fi
+
+	@if grep -q '^kube_version_min_required:' $(KUBESPRAY_DIR)/inventory/homelab/group_vars/k8s_cluster/k8s-cluster.yml; then \
+		sed -i 's/^kube_version_min_required:.*/kube_version_min_required: "v1.24.0"/' $(KUBESPRAY_DIR)/inventory/homelab/group_vars/k8s_cluster/k8s-cluster.yml; \
+	else \
+		echo 'kube_version_min_required: "v1.24.0"' >> $(KUBESPRAY_DIR)/inventory/homelab/group_vars/k8s_cluster/k8s-cluster.yml; \
+	fi
