@@ -11,8 +11,8 @@ INVENTORY_DIR := $(KUBESPRAY_DIR)/inventory/$(INVENTORY_NAME)
 INVENTORY_FILE := $(TF_DIR)/inventory.ini
 GROUP_VARS_FILE := $(INVENTORY_DIR)/group_vars/k8s_cluster/k8s-cluster.yml
 ENV_FILE := $(TF_DIR)/.env
-TERRAFORM_VERSION=1.9.8
-HELMFILE_VERSION=1.2.0
+TERRAFORM_VERSION=1.14.0
+HELMFILE_VERSION=1.2.1
 init: pre provisioning kubespray setKubeVersion fixInventory createCluster helm
 
 destroy:
@@ -21,27 +21,45 @@ destroy:
 	terraform destroy -auto-approve
 
 pre:
+	@echo ">>> Verificando Terraform..."
+	@if ! command -v terraform >/dev/null 2>&1; then \
+		echo ">>> Terraform não encontrado. Instalando..."; \
+		curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o terraform.zip; \
+		unzip -o terraform.zip >/dev/null; \
+		mv terraform /usr/local/bin/terraform; \
+		chmod +x /usr/local/bin/terraform; \
+		rm -f terraform.zip; \
+	else \
+		echo ">>> Terraform já está instalado:"; \
+		terraform version; \
+	fi
+
+	@echo ">>> Verificando Helm..."
+	@if ! command -v helm >/dev/null 2>&1; then \
+		echo ">>> Helm não encontrado. Instalando Helm v3.15.4..."; \
+		curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/v3.15.4/scripts/get-helm-3; \
+		chmod 700 get_helm.sh; \
+		HELM_INSTALL_DIR=/usr/local/bin DESIRED_VERSION=v3.15.4 ./get_helm.sh; \
+	else \
+		echo ">>> Helm já está instalado:"; \
+		helm version; \
+	fi
+
+	@echo ">>> Verificando Helmfile..."
 	@if ! command -v helmfile >/dev/null 2>&1; then \
 		echo ">>> Helmfile não encontrado. Instalando..."; \
-		wget -O /tmp/helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/v$(HELMFILE_VERSION)/helmfile_$(HELMFILE_VERSION)_linux_amd64.tar.gz; \
-		cd /tmp && tar -xvf helmfile.tar.gz; \
-		sudo chmod +x /tmp/helmfile; \
-		sudo mv /tmp/helmfile /usr/local/bin/helmfile; \
+		LATEST=$$(curl -fsSL https://api.github.com/repos/helmfile/helmfile/releases/latest | grep tag_name | cut -d '"' -f 4); \
+		echo ">> Baixando Helmfile $$LATEST..."; \
+		curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/$$LATEST/helmfile_$${LATEST#v}_linux_amd64.tar.gz; \
+		tar -xzf helmfile.tar.gz; \
+		sudo mv helmfile /usr/local/bin/helmfile; \
+		sudo chmod +x /usr/local/bin/helmfile; \
+		rm -f helmfile.tar.gz; \
 	else \
-		echo ">>> Helmfile já está instalado."; \
+		echo ">>> Helmfile já está instalado:"; \
 		helmfile version; \
 	fi
 
-	@if ! command -v terraform >/dev/null 2>&1; then \
-		echo ">>> Terraform não encontrado. Instalando..."; \
-		wget -O /tmp/terraform.zip https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip; \
-		cd /tmp && unzip -o terraform.zip; \
-		sudo chmod +x /tmp/terraform; \
-		sudo mv /tmp/terraform /usr/local/bin/terraform; \
-	else \
-		echo ">>> Terraform já está instalado."; \
-		terraform version; \
-	fi
 
 provisioning:
 	@cd $(TF_DIR) && \
@@ -80,15 +98,10 @@ helm:
 	@helm repo add metallb https://metallb.github.io/metallb || true
 	@helm repo update
 
-	@echo ">> Instalando Helm 4"
-	@curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
-	@chmod 700 get_helm.sh
-	@./get_helm.sh
-
 	@echo ">> Verificando plugin diff..."
 	@if ! helm plugin list | grep -q diff; then \
 		echo ">> Plugin diff não encontrado. Instalando..."; \
-		helm plugin install https://github.com/databus23/helm-diff --verify=false; \
+		helm plugin install https://github.com/databus23/helm-diff --version v3.9.5 --verify=false; \
 	else \
 		echo ">> Plugin diff já instalado. Atualizando..."; \
 		helm plugin update diff || true; \
