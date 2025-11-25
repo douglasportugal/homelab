@@ -49,7 +49,6 @@ provisioning:
 	terraform init && \
 	terraform apply -auto-approve
 
-
 kubespray:
 	cd $(ROOT_DIR) && \
 	rm -rf $(KUBESPRAY_DIR) && \
@@ -66,17 +65,46 @@ createCluster:
 		quay.io/kubespray/kubespray:v2.29.0 \
 		bash -c "ansible-playbook -i /inventory/inventory.ini --private-key /root/.ssh/id_rsa cluster.yml"
 
+upgradeCluster:
+	docker run --rm -it \
+		--mount type=bind,source=$(INVENTORY_DIR),dst=/inventory \
+		--mount type=bind,source=${HOME}/.ssh/id_rsa,dst=/root/.ssh/id_rsa \
+		quay.io/kubespray/kubespray:v2.29.0 \
+		bash -c "ansible-playbook -i /inventory/inventory.ini --private-key /root/.ssh/id_rsa upgrade-cluster.yml"
+
+# By chatgpt
 helm:
-	helm repo add zabbix-community https://zabbix-community.github.io/helm-charts || true
-	helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/ || true
-	helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
-	helm repo update && \
-	curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 && \
-    chmod 700 get_helm.sh && \
-	./get_helm.sh && \
-	helm plugin update diff || helm plugin install https://github.com/databus23/helm-diff --verify=false && \
-	helmfile apply && \
-	kubectl apply -f values/metallb/pool.yaml
+	@helm repo add zabbix-community https://zabbix-community.github.io/helm-charts || true
+	@helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/ || true
+	@helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+	@helm repo add metallb https://metallb.github.io/metallb || true
+	@helm repo update
+
+	@echo ">> Instalando Helm 4"
+	@curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+	@chmod 700 get_helm.sh
+	@./get_helm.sh
+
+	@echo ">> Verificando plugin diff..."
+	@if ! helm plugin list | grep -q diff; then \
+		echo ">> Plugin diff não encontrado. Instalando..."; \
+		helm plugin install https://github.com/databus23/helm-diff --verify=false; \
+	else \
+		echo ">> Plugin diff já instalado. Atualizando..."; \
+		helm plugin update diff || true; \
+	fi
+
+	@echo ">> Aplicando helmfile..."
+	@helmfile apply
+
+	@echo ">> Aguardando MetalLB subir antes de aplicar o pool..."
+	@kubectl -n metallb-system wait --for=condition=Ready pod -l app.kubernetes.io/component=controller --timeout=120s
+	@kubectl -n metallb-system wait --for=condition=Ready pod -l app.kubernetes.io/component=speaker --timeout=120s
+
+	@echo ">> Aplicando pool do MetalLB..."
+	@kubectl apply -f values/metallb/pool.yaml
+
+	@echo ">> Finalizado!"
 
 fixInventory:
 	sed -i '/^\[all\]/a ansible_user=douglas\\nansible_become=true\\nansible_become_method=sudo\\n' $(INVENTORY_DIR)/inventory.ini

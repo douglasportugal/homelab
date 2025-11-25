@@ -22,46 +22,53 @@ releases:
   namespace: metrics-system
   createNamespace: true
   chart: metrics-server/metrics-server
-  version: 3.12.2
+  version: 3.13.0
   values:
     - values/metrics-server/values.yaml
 
 - name: metallb
   namespace: metallb-system
-  createNamespace: true
   chart: metallb/metallb
-  version: 0.14.9
+  version: 0.15.2
   values:
     - values/metallb/values.yaml
+    - controller:
+        image:
+          repository: quay.io/metallb/controller
+          tag: v0.15.2
+      speaker:
+        image:
+          repository: quay.io/metallb/speaker
+          tag: v0.15.2
 
-- name: ingress-nginx
-  namespace: ingress-nginx
-  createNamespace: true
-  chart: ingress-nginx/ingress-nginx
-  version: 4.12.1
-  values:
-    - values/ingress-nginx/values.yaml
+# - name: ingress-nginx
+#   namespace: ingress-nginx
+#   createNamespace: true
+#   chart: ingress-nginx/ingress-nginx
+#   version: 4.14.0
+#   values:
+#     - values/ingress-nginx/values.yaml
 
-- name: nfs-subdir-external-provisioner
-  namespace: kube-system
-  createNamespace: true
-  chart: nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
-  version: 4.0.18
-  values:
-    - values/nfs-subdir-external-provisioner/values.yaml
+# - name: nfs-subdir-external-provisioner
+#   namespace: kube-system
+#   createNamespace: true
+#   chart: nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
+#   version: 4.0.18
+#   values:
+#     - values/nfs-subdir-external-provisioner/values.yaml
 
-- name: zabbix
-  namespace: monitoring
-  createNamespace: true
-  chart: zabbix-community/zabbix
-  version: 7.0.6
-  values:
-    - values/zabbix-community/values.yaml
+# # - name: zabbix
+# #   namespace: monitoring
+# #   createNamespace: true
+# #   chart: zabbix-community/zabbix
+# #   version: 7.0.12
+# #   values:
+# #     - values/zabbix-community/values.yaml
 
-- name: grafana
-  namespace: monitoring
-  createNamespace: true
-  chart: grafana/grafana
-  version: 8.11.2
-  values:
-    - values/grafana/values.yaml
+# - name: grafana
+#   namespace: monitoring
+#   createNamespace: true
+#   chart: grafana/grafana
+#   version: 10.2.0
+#   values:
+#     - values/grafana/values.yaml
